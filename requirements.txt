@@ -1,0 +1,8 @@
+streamlit
+fastapi
+uvicorn
+pandas
+numpy
+yfinance
+jinja2
+xlsxwriter
