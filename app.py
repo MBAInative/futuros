@@ -28,6 +28,7 @@ st.set_page_config(
 )
 
 DISPLAY_TZ = ZoneInfo("Europe/Madrid")
+MARKET_TZ = ZoneInfo("America/New_York")
 
 
 def inject_styles() -> None:
@@ -145,14 +146,18 @@ def format_pct(value: float) -> str:
     return f"{value * 100:,.2f}%"
 
 
-def format_timestamp(value: str | None) -> str:
+def format_timestamp_for_tz(value: str | None, target_tz: ZoneInfo) -> str:
     if not value:
         return "-"
     try:
         dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return dt.astimezone(DISPLAY_TZ).strftime("%d/%m/%Y %H:%M:%S")
+        return dt.astimezone(target_tz).strftime("%d/%m/%Y %H:%M:%S")
     except ValueError:
         return value
+
+
+def format_timestamp(value: str | None) -> str:
+    return format_timestamp_for_tz(value, DISPLAY_TZ)
 
 
 def pnl_class(value: float) -> str:
@@ -202,7 +207,8 @@ def build_recommendations_df(state: dict) -> pd.DataFrame:
                 "Vol. z": round(rec["volume_z"], 2),
                 "Ret. 5m": format_pct(rec["return_5m"]),
                 "Motivo": rec["reason"],
-                "Actualizado": format_timestamp(rec["updated_at"]),
+                "Actualizado mercado": format_timestamp_for_tz(rec["updated_at"], MARKET_TZ),
+                "Hora Madrid": format_timestamp_for_tz(rec["updated_at"], DISPLAY_TZ),
             }
         )
     return pd.DataFrame(rows)
@@ -287,7 +293,7 @@ def render_status_panel(state: dict) -> None:
                 <div class="metric-value {status_class(runtime.get('status', 'idle'))}">{runtime.get('status', 'idle')}</div>
             </div>
             <div class="metric-box">
-                <div class="metric-label">Ultima actualizacion</div>
+                <div class="metric-label">Ultima actualizacion app</div>
                 <div class="metric-value">{format_timestamp(runtime.get('last_refresh'))}</div>
             </div>
             <div class="metric-box">
@@ -333,7 +339,7 @@ def render_status_panel(state: dict) -> None:
             use_container_width=True,
         )
     st.markdown("</div>", unsafe_allow_html=True)
-    st.caption("Horas mostradas en Europe/Madrid. 'Ultima actualizacion' es la hora del refresco de la app; 'Actualizado' en recomendaciones es la hora del ultimo dato recibido de Yahoo Finance.")
+    st.caption("Relojes: 'Ultima actualizacion app' muestra la hora de Madrid del refresco de la app. En recomendaciones, 'Actualizado mercado' se muestra en hora de Nueva York y 'Hora Madrid' es ese mismo dato convertido a Madrid.")
 
 
 def render_help() -> None:
@@ -546,6 +552,41 @@ def render_help() -> None:
         )
 
 
+def render_disclaimer() -> None:
+    with st.expander("Peligro", expanded=False):
+        st.markdown(
+            """
+            **Aviso legal y exencion de responsabilidad**
+
+            Esta aplicacion tiene una finalidad exclusivamente informativa, educativa y de analisis de mercados.
+            Su contenido, incluidos datos, metricas, senales, puntuaciones, simulaciones, comentarios, explicaciones
+            y cualquier salida generada por el sistema, no constituye asesoramiento financiero, recomendacion personalizada
+            de inversion, oferta de compra o venta, ni invitacion a contratar instrumento financiero alguno.
+
+            La aplicacion no evalua la situacion financiera, los objetivos de inversion, la experiencia, el perfil de riesgo
+            ni las necesidades particulares de cada usuario. En consecuencia, ninguna senal mostrada por la app debe ser
+            interpretada como una recomendacion apta para una decision real de inversion o desinversion.
+
+            El usuario reconoce expresamente que utiliza esta herramienta bajo su exclusiva responsabilidad. Los desarrolladores,
+            titulares, colaboradores, proveedores de datos y cualesquiera terceros vinculados a esta aplicacion no asumen
+            responsabilidad alguna por perdidas, danos, costes, lucro cesante, decisiones de inversion, errores de interpretacion,
+            retrasos de datos, interrupciones del servicio ni por el uso directo o indirecto que pudiera hacerse de la informacion
+            mostrada.
+
+            Los datos empleados pueden proceder de fuentes publicas o de terceros y pueden contener retrasos, errores, omisiones,
+            inconsistencias o limitaciones de cobertura. En particular, Yahoo Finance y librerias asociadas no constituyen una
+            infraestructura profesional de ejecucion ni una fuente garantizada para operativa real.
+
+            Las operaciones reflejadas en el modulo de paper trading son simulaciones. No representan ordenes reales ejecutadas
+            en mercado ni garantizan resultados futuros. Rendimientos pasados, simulados o hipoteticos no aseguran rendimientos
+            futuros.
+
+            Si el usuario pretende adoptar decisiones economicas o de inversion con efectos reales, debera contrastar la
+            informacion por medios independientes y, en su caso, recabar asesoramiento profesional debidamente autorizado.
+            """
+        )
+
+
 def render_recommendations(state: dict) -> None:
     st.markdown('<div class="section-title">Recomendaciones</div>', unsafe_allow_html=True)
     st.caption(f"Refresco automatico: cada {REFRESH_SECONDS} segundos")
@@ -610,6 +651,7 @@ def main() -> None:
 
     render_status_panel(state)
     render_help()
+    render_disclaimer()
     render_recommendations(state)
     render_positions(state)
     render_equity(state)
