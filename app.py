@@ -5,14 +5,11 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 from main import (
     REFRESH_SECONDS,
     collect_market_snapshot,
-    default_runtime_state,
     export_workbook_bytes,
-    get_auto_buy_threshold,
     get_dashboard_state,
     init_db,
     reset_test_data,
@@ -112,25 +109,6 @@ def inject_styles() -> None:
         </style>
         """,
         unsafe_allow_html=True,
-    )
-
-
-def inject_autorefresh() -> None:
-    milliseconds = REFRESH_SECONDS * 1000
-    components.html(
-        f"""
-        <script>
-        const now = Date.now();
-        const last = window.localStorage.getItem("futuros_streamlit_reload");
-        if (!last || now - Number(last) > {milliseconds - 5000}) {{
-            window.localStorage.setItem("futuros_streamlit_reload", String(now));
-            window.setTimeout(function() {{
-                window.parent.location.reload();
-            }}, {milliseconds});
-        }}
-        </script>
-        """,
-        height=0,
     )
 
 
@@ -317,18 +295,18 @@ def render_status_panel(state: dict) -> None:
         )
         if threshold_value != current_threshold:
             set_auto_buy_threshold(threshold_value)
-            st.rerun()
+            st.rerun(scope="fragment")
     with refresh_col:
         st.write("")
         if st.button("Actualizar ahora", use_container_width=True, type="primary"):
             st.session_state["force_refresh"] = True
-            st.rerun()
+            st.rerun(scope="fragment")
     with reset_col:
         st.write("")
         if st.button("Reset", use_container_width=True):
             reset_test_data()
             st.session_state["force_refresh"] = False
-            st.rerun()
+            st.rerun(scope="fragment")
     with download_col:
         st.write("")
         st.download_button(
@@ -640,18 +618,12 @@ def render_equity(state: dict) -> None:
     )
 
 
-def main() -> None:
-    init_db()
-    inject_styles()
-    inject_autorefresh()
-    render_header()
-
+@st.fragment(run_every=f"{REFRESH_SECONDS}s")
+def render_live_dashboard() -> None:
     force_refresh = st.session_state.pop("force_refresh", False)
     state = ensure_runtime_state(force=force_refresh)
 
     render_status_panel(state)
-    render_help()
-    render_disclaimer()
     render_recommendations(state)
     render_positions(state)
     render_equity(state)
@@ -662,6 +634,15 @@ def main() -> None:
         for item in errors:
             st.warning(item)
     st.caption("Fuente de datos: Yahoo Finance API via yfinance. Uso orientado a observacion y paper trading.")
+
+
+def main() -> None:
+    init_db()
+    inject_styles()
+    render_header()
+    render_help()
+    render_disclaimer()
+    render_live_dashboard()
 
 
 if __name__ == "__main__":
