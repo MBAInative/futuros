@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
@@ -25,6 +26,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+DISPLAY_TZ = ZoneInfo("Europe/Madrid")
 
 
 def inject_styles() -> None:
@@ -147,7 +150,7 @@ def format_timestamp(value: str | None) -> str:
         return "-"
     try:
         dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return dt.astimezone().strftime("%d/%m/%Y %H:%M:%S")
+        return dt.astimezone(DISPLAY_TZ).strftime("%d/%m/%Y %H:%M:%S")
     except ValueError:
         return value
 
@@ -330,6 +333,7 @@ def render_status_panel(state: dict) -> None:
             use_container_width=True,
         )
     st.markdown("</div>", unsafe_allow_html=True)
+    st.caption("Horas mostradas en Europe/Madrid. 'Ultima actualizacion' es la hora del refresco de la app; 'Actualizado' en recomendaciones es la hora del ultimo dato recibido de Yahoo Finance.")
 
 
 def render_help() -> None:
