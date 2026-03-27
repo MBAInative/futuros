@@ -340,41 +340,208 @@ def render_help() -> None:
     with st.expander("Ayuda", expanded=False):
         st.markdown(
             """
-            La app mira varios futuros cada minuto y trata de detectar movimientos poco normales.
-            Si encuentra una anomalia suficiente, genera una senal y, si la fuerza supera el umbral elegido,
-            abre una operacion simulada.
+            Esta app observa varios futuros liquidos, como indices bursatiles, bonos, materias primas y divisas.
+            Cada minuto descarga los ultimos datos disponibles, compara lo que esta pasando ahora con el
+            comportamiento reciente y decide si el movimiento parece normal o si resulta llamativamente distinto
+            de lo habitual.
 
-            Conceptos principales:
+            La idea general es sencilla: si en un contrato aparece de repente mucho mas volumen del normal,
+            o si el precio se mueve con una intensidad mayor de la esperada, la app lo considera un posible
+            movimiento atipico. A partir de eso calcula una recomendacion. No pretende adivinar el futuro
+            con certeza, sino detectar situaciones que merecen mas atencion que un movimiento corriente del mercado.
 
-            - Futuro: contrato que estamos observando. Puede ser de indices, bonos, energia, metales o divisas.
-            - Accion: recomendacion actual. `buy` significa apostar a subida. `sell` significa apostar a bajada. `hold` significa no actuar.
-            - Fuerza: nota de 0 a 10. Cuanto mas alta, mas intensa es la senal.
-            - Precio: ultimo precio usado para calcular la recomendacion.
-            - Vol. z: compara el volumen de ahora con el volumen normal reciente. Un valor alto indica actividad rara.
-            - Ret. 5m: cambio porcentual del precio en los ultimos 5 minutos.
-            - Motivo: frase corta que resume por que la app penso en comprar, vender o esperar.
+            Cuando la fuerza de la recomendacion supera el umbral elegido, la app abre una operacion simulada.
+            Eso significa que no compra ni vende dinero real, pero si guarda la entrada, el precio, la direccion
+            y la evolucion posterior para medir si esa senal habria sido util o no. De este modo se puede estudiar
+            si seguir movimientos atipicos habria generado beneficios o perdidas.
 
-            Paper trading:
+            Debajo tienes la explicacion detallada de cada columna principal. Conviene leerlas en conjunto y no
+            de forma aislada, porque la app no se basa en una sola cifra, sino en varias medidas que se combinan
+            para formar la senal.
 
-            - Lado buy: posicion larga. Gana si el precio sube y pierde si baja.
-            - Lado sell: posicion corta. Gana si el precio baja y pierde si sube.
-            - Nominal: tamano aproximado de la posicion simulada.
-            - Entrada: precio al que se abrio la operacion.
-            - Actual: ultimo precio conocido o precio de cierre.
-            - PnL: ganancia o perdida. Verde si gana, rojo si pierde.
-            - Estado open: la operacion sigue viva.
-            - Estado closed: la operacion ya se cerro y ese resultado queda fijado.
+            **Futuro**
 
-            Como leer un ejemplo:
+            Esta columna indica el contrato que se esta analizando. Un futuro es un acuerdo estandarizado que
+            cotiza en mercado organizado y cuyo valor depende de un activo subyacente. Ese activo puede ser
+            petroleo, gas, oro, bonos del Tesoro, euro o un indice como el S&P 500. Por eso cuando ves un nombre
+            como E-mini S&P 500 no estas viendo una empresa concreta, sino un contrato que representa la evolucion
+            esperada de ese indice.
 
-            - Si ves `buy`, fuerza `8.2` y `Ret. 5m` positivo, la app cree que el movimiento alcista es fuerte.
-            - Si ves `sell`, fuerza `7.8` y el precio cae, esa posicion gana porque apostaba a la bajada.
-            - Si ves `hold`, la app no ve una anomalia suficiente para abrir operacion.
+            La utilidad de esta columna es situarte. No es lo mismo una anomalia en el petroleo que en los bonos
+            o en el oro. Cada mercado tiene ritmos, horarios y motivos distintos para moverse. Ver el futuro
+            concreto te ayuda a interpretar si la senal esta ligada a crecimiento economico, miedo en mercado,
+            inflacion, materias primas o movimiento de divisas.
 
-            Excel:
+            **Accion**
 
-            - El boton `Descargar Excel` baja un archivo con resumen, recomendaciones, posiciones, equity, configuracion y ayuda.
-            - El boton `Reset` limpia la base de datos de prueba para empezar desde cero.
+            Es la conclusion operativa del sistema y puede tomar tres valores: `buy`, `sell` o `hold`.
+            `buy` significa que, segun los datos de ese momento, la app interpreta que el movimiento atipico
+            favorece una subida. `sell` significa que la lectura favorece una bajada. `hold` significa que,
+            aunque el mercado se este moviendo, la senal no es lo bastante clara, intensa o consistente como
+            para justificar una entrada.
+
+            Es importante no interpretar esta columna como una orden infalible. La accion es un resumen.
+            Detras hay volumen, retornos recientes, comparacion con el comportamiento habitual y, en algunos casos,
+            coherencia con otros futuros. Por eso conviene mirar siempre tambien la fuerza y el motivo antes
+            de sacar una conclusion.
+
+            **Fuerza**
+
+            Es una nota entre 0 y 10 que resume cuanta conviccion tiene el sistema en la recomendacion.
+            No es una probabilidad matematica exacta de acierto, sino una puntuacion interna. Un valor bajo,
+            como 1, 2 o 3, indica que el movimiento entra dentro de lo bastante normal. Un valor medio, como
+            5 o 6, sugiere que ya hay algo llamativo. Un valor alto, por encima del umbral elegido, indica que
+            la anomalia parece suficientemente clara como para abrir una operacion simulada automaticamente.
+
+            En lenguaje simple, la fuerza intenta responder a esta pregunta: "de 0 a 10, hasta que punto parece
+            especial lo que esta ocurriendo ahora?" Si sube mucho es porque coinciden varios factores a la vez,
+            por ejemplo volumen fuerte, movimiento de precio brusco y cierta confirmacion en otros mercados relacionados.
+
+            **Precio**
+
+            Es el ultimo precio conocido del futuro en ese instante. Te dice donde esta ahora el mercado.
+            Tambien es el valor que la app usa como referencia para una entrada simulada. Si el sistema abre
+            una posicion y el precio despues cambia, la ganancia o perdida se calcula comparando el precio actual
+            con ese precio de entrada.
+
+            Esta columna es importante porque pone en contexto el resto. No basta con saber que hay una senal:
+            tambien hay que saber a que nivel de mercado aparece. En una fase posterior, este dato permite estudiar
+            si la senal surge cerca de maximos, minimos, zonas de ruptura o simplemente en mitad de un rango sin especial interes.
+
+            **Vol. z**
+
+            Significa z-score del volumen. La app compara el volumen negociado en ese instante con el volumen medio
+            reciente del mismo contrato. Si el valor esta cerca de 0, significa que el volumen es parecido al normal.
+            Si vale 1 o 2, el volumen ya esta por encima de lo habitual. Si sube a 3, 4 o mas, significa que en ese
+            momento se esta negociando mucho mas de lo normal.
+
+            Esto es util porque un movimiento de precio no tiene el mismo significado si ocurre con poco volumen o con
+            volumen muy alto. Si el precio sube un poco pero casi nadie negocia, puede ser solo ruido. Si el precio sube
+            o baja con una entrada fuerte de volumen, el movimiento parece mas serio. Por eso esta columna ayuda a distinguir
+            una oscilacion pequena de un episodio en el que hay participacion inusual del mercado.
+
+            **Ret. 5m**
+
+            Es el retorno de los ultimos cinco minutos expresado en porcentaje. Si ves un `+0,30%`, quiere decir que
+            el futuro vale ahora un `0,30%` mas que hace cinco minutos. Si ves un `-0,20%`, significa que vale un
+            `0,20%` menos. Es una forma rapida de resumir la direccion reciente del precio sin quedarnos solo con lo
+            ocurrido en un unico minuto.
+
+            Se usa cinco minutos porque es un plazo corto pero algo mas estable. Un minuto puede ser muy ruidoso.
+            Cinco minutos siguen siendo intradia, pero dan un poco mas de perspectiva. Esta columna sirve para ver
+            si hay una tendencia reciente clara y en que sentido va. Cuando el retorno a cinco minutos y el volumen
+            atipico apuntan en la misma direccion, la recomendacion suele ganar coherencia.
+
+            **Motivo**
+
+            Es la explicacion textual de por que la app propone esa accion. Aqui aparecen frases como volumen atipico,
+            movimiento brusco, tendencia 5m o confirmacion con otros futuros. Esta columna es clave porque convierte
+            el calculo interno en una razon legible. Asi no dependes solo de la palabra `buy` o `sell`, sino que ves
+            que elementos han impulsado la senal.
+
+            Por ejemplo, si el motivo menciona volumen atipico y tendencia 5m, eso quiere decir que no solo ha habido
+            movimiento, sino que ese movimiento ha llegado con una actividad de mercado superior a la normal. Si ademas
+            se indica confirmacion con otros futuros, la app esta diciendo que la senal no parece aislada, sino alineada
+            con lo que sucede en contratos relacionados.
+
+            **Ejemplos de lectura**
+
+            Ejemplo 1: posible compra. Imagina que en `CL=F` ves `Accion = buy`, `Fuerza = 8.2`, `Vol. z = 3.6`,
+            `Ret. 5m = +0.42%` y en `Motivo` aparece volumen atipico, tendencia 5m, confirmacion con otros futuros.
+
+            Lectura: el petroleo no solo esta subiendo, sino que lo hace con mucho mas volumen del normal y con una
+            subida sostenida en los ultimos minutos. Ademas, la app detecta coherencia con otros mercados relacionados.
+            Eso no garantiza exito, pero si describe una situacion relativamente fuerte y poco corriente. Por eso la
+            fuerza es alta y la app se inclina por comprar.
+
+            Ejemplo 2: posible venta. Imagina que en `ES=F` ves `Accion = sell`, `Fuerza = 7.8`, `Vol. z = 2.9`,
+            `Ret. 5m = -0.55%` y el `Motivo` habla de movimiento brusco y volumen atipico.
+
+            Lectura: el futuro del S&P 500 esta cayendo con una intensidad superior a la habitual y, ademas, esa caida
+            viene acompanada de un volumen elevado. Esa combinacion suele ser mas relevante que una simple bajada con
+            poco negocio. La app interpreta que la presion vendedora domina en ese momento y por eso recomienda vender.
+
+            Ejemplo 3: mejor esperar. Supongamos que en `GC=F` aparece `Accion = hold`, `Fuerza = 3.1`, `Vol. z = 0.4`,
+            `Ret. 5m = +0.08%` y el `Motivo` dice mercado sin anomalia clara.
+
+            Lectura: el oro puede estar moviendose algo, pero ese movimiento entra dentro de la normalidad. No hay mucho
+            volumen extraordinario ni una aceleracion especialmente llamativa. La app prefiere no forzar una entrada solo
+            porque el precio haya variado un poco. Aqui la informacion util es precisamente que todavia no hay una senal de calidad.
+
+            Ejemplo 4: fuerza media, pero no suficiente. Piensa en `6E=F` con `Accion = hold`, `Fuerza = 5.9`,
+            `Vol. z = 1.8` y `Ret. 5m = -0.18%`. El mercado empieza a ponerse interesante, pero aun no hay una combinacion
+            tan clara como para que la app abra una operacion simulada.
+
+            Lectura: este tipo de caso sirve para entender que la app no trabaja en blanco o negro. Puede detectar una
+            situacion potencialmente relevante sin llegar todavia al nivel de conviccion exigido. Eso ayuda a seguir la
+            evolucion del contrato y esperar si la senal se fortalece o se desinfla en los siguientes minutos.
+
+            **Paper Trading y PnL**
+
+            **Lado**
+
+            Indica la direccion de la operacion simulada. `buy` significa compra: ganas si el precio sube.
+            `sell` significa venta en corto: ganas si el precio baja. Por eso una operacion `sell` puede dar beneficio
+            sin haber comprado el activo primero; en esta simulacion significa que apuestas a una bajada.
+
+            **Entrada**
+
+            Es el precio exacto al que la app abre la operacion simulada. Desde ese instante, todos los calculos de
+            ganancia o perdida se hacen comparando el mercado actual con ese precio de entrada.
+
+            **Actual**
+
+            Es el ultimo precio conocido del futuro. La app lo actualiza cada refresco y vuelve a calcular el resultado
+            potencial de la posicion abierta.
+
+            **Cuanto se invierte**
+
+            En la version actual la app simula siempre `1` contrato por operacion. No usa una cantidad variable de dinero
+            ni una cartera proporcional. Usa el multiplicador propio de cada futuro.
+
+            Eso significa que el nominal aproximado de una operacion se obtiene asi:
+            `precio de entrada x multiplicador x numero de contratos`.
+            Como el numero de contratos es `1`, basta con `precio x multiplicador`.
+
+            Ejemplos: si `CL=F` entra en `92.820` y su multiplicador es `1000`, el nominal simulado es aproximadamente
+            `92.820 x 1000 = 92.820 USD`. Si `NG=F` entra en `2.881` y su multiplicador es `10000`, el nominal simulado
+            es aproximadamente `2.881 x 10000 = 28.810 USD`.
+
+            **Como calcula la ganancia o la perdida**
+
+            La app usa esta formula: `(precio actual - precio de entrada) x multiplicador x contratos`.
+            Si el lado es `sell`, invierte el signo porque en una venta en corto ganas cuando el precio baja y pierdes cuando sube.
+
+            En el ejemplo de `CL=F`, si la entrada es `92.820` y el precio actual es `92.920`, como es una posicion `sell`,
+            esa subida te perjudica. La diferencia es `0.100`. Multiplicada por `1000` da `100 USD` de perdida.
+            Por eso aparece `-100,00 USD`.
+
+            En un ejemplo de `NG=F`, si la entrada y el actual son ambos `2.881`, la diferencia es `0`, asi que el
+            resultado es `0,00 USD`.
+
+            **PnL abierto**
+
+            Es la suma de las ganancias y perdidas de las posiciones que siguen abiertas en este momento.
+            Va cambiando cada minuto con el mercado.
+
+            **PnL realizado**
+
+            Es la suma de los resultados de las posiciones que ya se cerraron. Ese valor ya no cambia por el movimiento
+            del mercado, porque la operacion esta terminada.
+
+            **Estado**
+
+            `open` significa que la posicion sigue viva y su PnL puede cambiar.
+            `closed` significa que la posicion ya se cerro y su resultado pasa al PnL realizado.
+
+            La mejor forma de leer la tabla es combinar todo: primero mirar que futuro es, despues ver la accion,
+            luego fijarse en la fuerza y, finalmente, leer el motivo mientras se interpreta el precio, el volumen y
+            el retorno de cinco minutos. Una fuerza alta con volumen anormal y motivo claro merece mas atencion que
+            una accion aislada con fuerza baja.
+
+            Importante: Yahoo Finance es suficiente para aprender, prototipar y hacer simulacion, pero no es una fuente
+            profesional para trading real. La app esta pensada para estudio, seguimiento y mejora del modelo, no para
+            ejecutar dinero real.
             """
         )
 
